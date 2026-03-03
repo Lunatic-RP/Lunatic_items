@@ -7,8 +7,29 @@ export default function App() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [page, setPage] = useState(1);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // État pour ouvrir/fermer
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const loaderRef = useRef(null);
+
+  // --- DÉTECTION D'URL (C'est tout ce qu'on ajoute) ---
+  useEffect(() => {
+    const handleInitialUrl = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (hash) {
+        // On cherche l'item dont le chemin d'image contient le hash
+        const foundItem = items.find(item => item.image.toLowerCase().includes(hash.toLowerCase()));
+        if (foundItem) {
+          setSearch(foundItem.name); // On remplit la recherche avec le nom de l'item
+          setActiveCategory('all');
+          setPage(1);
+        }
+      }
+    };
+
+    handleInitialUrl();
+    // On écoute aussi si l'utilisateur change le hash manuellement dans sa barre d'adresse
+    window.addEventListener('hashchange', handleInitialUrl);
+    return () => window.removeEventListener('hashchange', handleInitialUrl);
+  }, []);
 
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
@@ -18,7 +39,7 @@ export default function App() {
   const handleCategoryChange = (cat) => {
     setActiveCategory(cat);
     setPage(1);
-    setIsSidebarOpen(false); // Ferme la sidebar sur mobile après sélection
+    setIsSidebarOpen(false);
   };
 
   const categories = useMemo(() => {
@@ -37,7 +58,6 @@ export default function App() {
 
   const visibleItems = allFilteredItems.slice(0, page * ITEMS_PER_PAGE);
 
-  // Scroll infini
   useEffect(() => {
     const observer = new IntersectionObserver((entries) => {
       if (entries[0].isIntersecting && visibleItems.length < allFilteredItems.length) {
@@ -49,6 +69,7 @@ export default function App() {
     return () => observer.disconnect();
   }, [visibleItems.length, allFilteredItems.length]);
 
+  // ON GARDE TA FONCTION DE CLIC ORIGINALE
   const copyToClipboard = (id) => {
     navigator.clipboard.writeText(id);
     const notification = document.createElement('div');
@@ -67,10 +88,10 @@ export default function App() {
         .sidebar-scroll { overscroll-behavior: contain; }
       `}} />
 
-      {/* --- MENU BURGER (Mobile) --- */}
+      {/* Bouton Burger */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-6 left-6 z-[70] md:hidden bg-[#c3a05b] p-3 rounded-xl text-black shadow-lg active:scale-90 transition-transform"
+        className="fixed top-6 left-6 z-[70] md:hidden bg-[#c3a05b] p-3 rounded-xl text-black shadow-lg"
       >
         {isSidebarOpen ? (
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -79,20 +100,12 @@ export default function App() {
         )}
       </button>
 
-      {/* --- OVERLAY (Mobile) --- */}
       {isSidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300"
-          onClick={() => setIsSidebarOpen(false)}
-        />
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] md:hidden" onClick={() => setIsSidebarOpen(false)} />
       )}
 
-      {/* --- SIDEBAR RESPONSIVE --- */}
-      <aside className={`
-        fixed md:sticky top-0 left-0 z-[65] w-72 md:w-64 h-screen border-r border-white/5 bg-[#0d0d14]/95 backdrop-blur-xl 
-        transition-transform duration-300 ease-out flex flex-col
-        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
+      {/* Sidebar */}
+      <aside className={`fixed md:sticky top-0 left-0 z-[65] w-72 md:w-64 h-screen border-r border-white/5 bg-[#0d0d14]/95 transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'} flex flex-col`}>
         <div className="p-6 pt-20 md:pt-6 flex-1 overflow-y-auto sidebar-scroll">
           <h2 className="text-[#c3a05b] font-black uppercase tracking-widest text-[10px] mb-8 opacity-50">Navigation</h2>
           <nav className="space-y-1">
@@ -100,76 +113,57 @@ export default function App() {
               <button
                 key={cat}
                 onClick={() => handleCategoryChange(cat)}
-                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium capitalize transition-all ${
-                  activeCategory === cat 
-                  ? 'bg-[#c3a05b]/10 text-[#c3a05b] border border-[#c3a05b]/20' 
-                  : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
-                }`}
+                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium capitalize transition-all ${activeCategory === cat ? 'bg-[#c3a05b]/10 text-[#c3a05b] border border-[#c3a05b]/20' : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'}`}
               >
                 {cat === 'all' ? 'Tous les items' : cat.replace(/-/g, ' ')}
               </button>
             ))}
           </nav>
         </div>
-        
-        <div className="p-6 border-t border-white/5 bg-[#0d0d14]">
-          <div className="text-[10px] text-gray-600 font-mono leading-relaxed uppercase">
-            LUNATIC ITEMS v1.0<br/>
-            <span className="text-[#c3a05b] tracking-tighter italic">BY RIDERCOOL</span>
+        <div className="p-6 border-t border-white/5">
+          <div className="text-[10px] text-gray-600 font-mono uppercase">
+            LUNATIC ITEMS v1.0<br/><span className="text-[#c3a05b] italic">BY RIDERCOOL</span>
           </div>
         </div>
       </aside>
 
-      {/* --- MAIN CONTENT --- */}
-      <main className="flex-1 p-4 md:p-10 transition-all duration-300">
+      <main className="flex-1 p-4 md:p-10">
         <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12 mt-16 md:mt-0">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic">
-              <span className="text-[#c3a05b]">Lunatic</span> Catalogue d'items
+            <h1 className="text-3xl md:text-4xl font-black uppercase italic">
+              <span className="text-[#c3a05b]">Lunatic</span> Catalogue
             </h1>
-            <p className="text-gray-500 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">Lunatic RP</p>
           </div>
-
-          <div className="relative group">
-            <input 
-              type="text"
-              placeholder="Rechercher un item..."
-              className="w-full lg:w-96 bg-[#11111a] border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#c3a05b]/50 transition-all shadow-2xl"
-              onChange={handleSearchChange}
-            />
-          </div>
+          <input 
+            type="text"
+            value={search} // Important pour que l'URL puisse remplir le champ
+            placeholder="Rechercher..."
+            className="w-full lg:w-96 bg-[#11111a] border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#c3a05b]/50 transition-all shadow-2xl"
+            onChange={handleSearchChange}
+          />
         </header>
 
-        {/* --- GRID ITEMS --- */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-8 gap-3 md:gap-4">
           {visibleItems.map((item) => (
             <div 
               key={item.id}
-              onClick={() => copyToClipboard(item.id)}
-              className="group relative bg-[#11111a] border border-white/5 rounded-2xl p-3 md:p-4 flex flex-col items-center justify-between aspect-square hover:border-[#c3a05b]/40 hover:bg-[#c3a05b]/[0.02] transition-all duration-300 cursor-pointer"
+              onClick={() => copyToClipboard(item.id)} // Retour à l'original
+              className="group relative bg-[#11111a] border border-white/5 rounded-2xl p-3 md:p-4 flex flex-col items-center justify-between aspect-square hover:border-[#c3a05b]/40 transition-all cursor-pointer"
             >
               <div className="flex-1 flex items-center justify-center p-2 w-full overflow-hidden">
                 <img 
-                   src={item.image.startsWith('./') ? item.image : `./${item.image}`} 
-                   alt={item.name} 
-                   loading="lazy"
-                   className="max-w-[85%] max-h-[85%] object-contain group-hover:scale-110 transition-transform duration-500" 
+                  src={item.image.startsWith('./') ? item.image : `./${item.image}`} 
+                  alt={item.name} 
+                  loading="lazy"
+                  className="max-w-[85%] max-h-[85%] object-contain group-hover:scale-110 transition-transform" 
                 />
               </div>
-              <div className="w-full text-center mt-2">
-                <p className="text-[9px] md:text-[10px] font-bold text-gray-400 group-hover:text-[#c3a05b] truncate uppercase">{item.name}</p>
-                <p className="text-[7px] md:text-[8px] font-mono text-gray-700 mt-0.5">{item.category}</p>
-              </div>
+              <p className="text-[9px] md:text-[10px] font-bold text-gray-400 group-hover:text-[#c3a05b] uppercase truncate w-full text-center mt-2">{item.name}</p>
             </div>
           ))}
         </div>
 
-        {/* --- LOADER --- */}
-        <div ref={loaderRef} className="h-20 w-full flex items-center justify-center mt-10">
-          {visibleItems.length < allFilteredItems.length && (
-            <div className="w-6 h-6 border-2 border-[#c3a05b]/20 border-b-[#c3a05b] rounded-full animate-spin" />
-          )}
-        </div>
+        <div ref={loaderRef} className="h-20 w-full flex items-center justify-center" />
       </main>
     </div>
   );
