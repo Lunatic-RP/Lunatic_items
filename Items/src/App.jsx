@@ -1,15 +1,15 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { items } from './constants/items';
 
-const ITEMS_PER_PAGE = 20;
+const ITEMS_PER_PAGE = 24;
 
 export default function App() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [page, setPage] = useState(1);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false); // État pour ouvrir/fermer
   const loaderRef = useRef(null);
 
-  // Fonctions de modification (On reset la page ici, pas dans un effect)
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
     setPage(1);
@@ -18,15 +18,14 @@ export default function App() {
   const handleCategoryChange = (cat) => {
     setActiveCategory(cat);
     setPage(1);
+    setIsSidebarOpen(false); // Ferme la sidebar sur mobile après sélection
   };
 
-  // Extraction des catégories
   const categories = useMemo(() => {
     const cats = items.map(item => item.category);
     return ['all', ...new Set(cats)];
   }, []);
 
-  // Filtrage des items
   const allFilteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -36,16 +35,7 @@ export default function App() {
     });
   }, [search, activeCategory]);
 
-  // Calcul des items visibles en fonction de la page
   const visibleItems = allFilteredItems.slice(0, page * ITEMS_PER_PAGE);
-
-  // Intersection Observer (Seul effect autorisé pour l'API externe Browser)
-  useEffect(() => {
-    window.scrollTo(0, 0);
-    if ('scrollRestoration' in window.history) {
-      window.history.scrollRestoration = 'manual';
-    }
-  }, []);
 
   // Scroll infini
   useEffect(() => {
@@ -63,7 +53,7 @@ export default function App() {
     navigator.clipboard.writeText(id);
     const notification = document.createElement('div');
     notification.innerText = `Copié: ${id}`;
-    notification.className = "fixed bottom-5 right-5 bg-[#c3a05b] text-black px-4 py-2 rounded-lg shadow-lg z-50 font-bold border border-white/20";
+    notification.className = "fixed bottom-5 right-5 bg-[#c3a05b] text-black px-4 py-2 rounded-lg shadow-lg z-[100] font-bold border border-white/20";
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 2000);
   };
@@ -74,12 +64,36 @@ export default function App() {
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0f; }
         ::-webkit-scrollbar-thumb { background: #c3a05b; border-radius: 10px; }
-        * { scrollbar-width: thin; scrollbar-color: #c3a05b #0a0a0f; }
+        .sidebar-scroll { overscroll-behavior: contain; }
       `}} />
 
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-white/5 bg-[#0d0d14]/80 backdrop-blur-md sticky top-0 h-screen hidden md:flex flex-col">
-        <div className="p-6 flex-1 overflow-y-auto">
+      {/* --- MENU BURGER (Mobile) --- */}
+      <button 
+        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+        className="fixed top-6 left-6 z-[70] md:hidden bg-[#c3a05b] p-3 rounded-xl text-black shadow-lg active:scale-90 transition-transform"
+      >
+        {isSidebarOpen ? (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+        ) : (
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+        )}
+      </button>
+
+      {/* --- OVERLAY (Mobile) --- */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] md:hidden transition-opacity duration-300"
+          onClick={() => setIsSidebarOpen(false)}
+        />
+      )}
+
+      {/* --- SIDEBAR RESPONSIVE --- */}
+      <aside className={`
+        fixed md:sticky top-0 left-0 z-[65] w-72 md:w-64 h-screen border-r border-white/5 bg-[#0d0d14]/95 backdrop-blur-xl 
+        transition-transform duration-300 ease-out flex flex-col
+        ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+      `}>
+        <div className="p-6 pt-20 md:pt-6 flex-1 overflow-y-auto sidebar-scroll">
           <h2 className="text-[#c3a05b] font-black uppercase tracking-widest text-[10px] mb-8 opacity-50">Navigation</h2>
           <nav className="space-y-1">
             {categories.map((cat) => (
@@ -106,42 +120,51 @@ export default function App() {
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-6 lg:p-10">
-        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
+      {/* --- MAIN CONTENT --- */}
+      <main className="flex-1 p-4 md:p-10 transition-all duration-300">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12 mt-16 md:mt-0">
           <div>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic">
+            <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic">
               <span className="text-[#c3a05b]">Lunatic</span> Catalogue
             </h1>
             <p className="text-gray-500 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">Items Lunatic RP</p>
           </div>
 
-          <input 
-            type="text"
-            placeholder="Rechercher..."
-            className="w-full lg:w-96 bg-[#11111a] border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#c3a05b]/50 transition-all shadow-2xl"
-            onChange={handleSearchChange}
-          />
+          <div className="relative group">
+            <input 
+              type="text"
+              placeholder="Rechercher un item..."
+              className="w-full lg:w-96 bg-[#11111a] border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#c3a05b]/50 transition-all shadow-2xl"
+              onChange={handleSearchChange}
+            />
+          </div>
         </header>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-8 gap-4">
+        {/* --- GRID ITEMS --- */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-8 gap-3 md:gap-4">
           {visibleItems.map((item) => (
             <div 
               key={item.id}
               onClick={() => copyToClipboard(item.id)}
-              className="group relative bg-[#11111a] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-between aspect-square hover:border-[#c3a05b]/40 hover:bg-[#c3a05b]/[0.02] transition-all duration-300 cursor-pointer"
+              className="group relative bg-[#11111a] border border-white/5 rounded-2xl p-3 md:p-4 flex flex-col items-center justify-between aspect-square hover:border-[#c3a05b]/40 hover:bg-[#c3a05b]/[0.02] transition-all duration-300 cursor-pointer"
             >
-              <div className="flex-1 flex items-center justify-center p-2">
-                <img src={item.image.startsWith('./') ? item.image : `./${item.image}`} alt={item.name} className="max-w-[80%] max-h-[80%] object-contain group-hover:scale-110 transition-transform duration-500"/>
+              <div className="flex-1 flex items-center justify-center p-2 w-full overflow-hidden">
+                <img 
+                   src={item.image.startsWith('./') ? item.image : `./${item.image}`} 
+                   alt={item.name} 
+                   loading="lazy"
+                   className="max-w-[85%] max-h-[85%] object-contain group-hover:scale-110 transition-transform duration-500" 
+                />
               </div>
               <div className="w-full text-center mt-2">
-                <p className="text-[10px] font-bold text-gray-400 group-hover:text-[#c3a05b] truncate uppercase">{item.name}</p>
-                <p className="text-[8px] font-mono text-gray-700 mt-0.5">{item.category}</p>
+                <p className="text-[9px] md:text-[10px] font-bold text-gray-400 group-hover:text-[#c3a05b] truncate uppercase">{item.name}</p>
+                <p className="text-[7px] md:text-[8px] font-mono text-gray-700 mt-0.5">{item.category}</p>
               </div>
             </div>
           ))}
         </div>
 
+        {/* --- LOADER --- */}
         <div ref={loaderRef} className="h-20 w-full flex items-center justify-center mt-10">
           {visibleItems.length < allFilteredItems.length && (
             <div className="w-6 h-6 border-2 border-[#c3a05b]/20 border-b-[#c3a05b] rounded-full animate-spin" />
