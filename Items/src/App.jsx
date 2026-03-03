@@ -1,27 +1,32 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { items } from './constants/items';
 
-const ITEMS_PER_PAGE = 24;
+const ITEMS_PER_PAGE = 20;
 
 export default function App() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [page, setPage] = useState(1);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false); // État pour le Burger
   const loaderRef = useRef(null);
 
-  // Reset page et fermeture menu mobile
+  // Fonctions de modification (On reset la page ici, pas dans un effect)
+  const handleSearchChange = (e) => {
+    setSearch(e.target.value);
+    setPage(1);
+  };
+
   const handleCategoryChange = (cat) => {
     setActiveCategory(cat);
     setPage(1);
-    setIsMobileMenuOpen(false); // Ferme le menu après clic
   };
 
+  // Extraction des catégories
   const categories = useMemo(() => {
     const cats = items.map(item => item.category);
     return ['all', ...new Set(cats)];
   }, []);
 
+  // Filtrage des items
   const allFilteredItems = useMemo(() => {
     return items.filter(item => {
       const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -31,7 +36,16 @@ export default function App() {
     });
   }, [search, activeCategory]);
 
+  // Calcul des items visibles en fonction de la page
   const visibleItems = allFilteredItems.slice(0, page * ITEMS_PER_PAGE);
+
+  // Intersection Observer (Seul effect autorisé pour l'API externe Browser)
+  useEffect(() => {
+    window.scrollTo(0, 0);
+    if ('scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+  }, []);
 
   // Scroll infini
   useEffect(() => {
@@ -49,7 +63,7 @@ export default function App() {
     navigator.clipboard.writeText(id);
     const notification = document.createElement('div');
     notification.innerText = `Copié: ${id}`;
-    notification.className = "fixed bottom-5 right-5 bg-[#c3a05b] text-black px-4 py-2 rounded-lg shadow-lg z-[100] font-bold border border-white/20 animate-bounce";
+    notification.className = "fixed bottom-5 right-5 bg-[#c3a05b] text-black px-4 py-2 rounded-lg shadow-lg z-50 font-bold border border-white/20";
     document.body.appendChild(notification);
     setTimeout(() => notification.remove(), 2000);
   };
@@ -60,43 +74,13 @@ export default function App() {
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: #0a0a0f; }
         ::-webkit-scrollbar-thumb { background: #c3a05b; border-radius: 10px; }
-        
-        /* FIX SCROLL SIDEBAR : Empêche le scroll de la page principale */
-        .sidebar-scroll { 
-            overscroll-behavior: contain; 
-            scrollbar-width: thin; 
-            scrollbar-color: #c3a05b #0a0a0f;
-        }
+        * { scrollbar-width: thin; scrollbar-color: #c3a05b #0a0a0f; }
       `}} />
 
-      {/* BOUTON BURGER (Mobile uniquement) */}
-      <button 
-        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        className="fixed bottom-6 right-6 z-[60] md:hidden bg-[#c3a05b] p-4 rounded-full shadow-2xl text-black active:scale-90 transition-transform"
-      >
-        {isMobileMenuOpen ? (
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-        ) : (
-          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-        )}
-      </button>
-
-      {/* Sidebar Overlay (Mobile) */}
-      {isMobileMenuOpen && (
-        <div 
-          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[50] md:hidden"
-          onClick={() => setIsMobileMenuOpen(false)}
-        />
-      )}
-
       {/* Sidebar */}
-      <aside className={`
-        fixed md:sticky top-0 left-0 z-[55] w-72 md:w-64 h-screen border-r border-white/5 bg-[#0d0d14] backdrop-blur-md 
-        transition-transform duration-300 ease-in-out flex flex-col
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
-      `}>
-        <div className="p-6 flex-1 overflow-y-auto sidebar-scroll">
-          <h2 className="text-[#c3a05b] font-black uppercase tracking-widest text-[10px] mb-8 opacity-50">Catégories</h2>
+      <aside className="w-64 border-r border-white/5 bg-[#0d0d14]/80 backdrop-blur-md sticky top-0 h-screen hidden md:flex flex-col">
+        <div className="p-6 flex-1 overflow-y-auto">
+          <h2 className="text-[#c3a05b] font-black uppercase tracking-widest text-[10px] mb-8 opacity-50">Navigation</h2>
           <nav className="space-y-1">
             {categories.map((cat) => (
               <button
@@ -123,10 +107,10 @@ export default function App() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 p-4 md:p-10 w-full overflow-x-hidden">
-        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12 mt-4 md:mt-0">
+      <main className="flex-1 p-6 lg:p-10">
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic">
+            <h1 className="text-4xl font-black tracking-tighter uppercase italic">
               <span className="text-[#c3a05b]">Lunatic</span> Catalogue
             </h1>
             <p className="text-gray-500 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">Items Lunatic RP</p>
@@ -134,40 +118,33 @@ export default function App() {
 
           <input 
             type="text"
-            placeholder="Rechercher un item..."
-            className="w-full lg:w-96 bg-[#11111a] border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#c3a05b]/50 transition-all shadow-2xl text-sm"
+            placeholder="Rechercher..."
+            className="w-full lg:w-96 bg-[#11111a] border border-white/10 rounded-2xl px-6 py-4 outline-none focus:border-[#c3a05b]/50 transition-all shadow-2xl"
             onChange={handleSearchChange}
           />
         </header>
 
-        {/* Grid des items */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-8 gap-3 md:gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 2xl:grid-cols-8 gap-4">
           {visibleItems.map((item) => (
             <div 
               key={item.id}
               onClick={() => copyToClipboard(item.id)}
-              className="group relative bg-[#11111a] border border-white/5 rounded-2xl p-3 md:p-4 flex flex-col items-center justify-between aspect-square hover:border-[#c3a05b]/40 hover:bg-[#c3a05b]/[0.02] transition-all duration-300 cursor-pointer"
+              className="group relative bg-[#11111a] border border-white/5 rounded-2xl p-4 flex flex-col items-center justify-between aspect-square hover:border-[#c3a05b]/40 hover:bg-[#c3a05b]/[0.02] transition-all duration-300 cursor-pointer"
             >
-              <div className="flex-1 flex items-center justify-center p-2 w-full overflow-hidden">
-                <img 
-                   /* Utilisation de ./ pour éviter l'erreur 404 sur GitHub Pages */
-                   src={item.image.startsWith('./') ? item.image : `./${item.image}`} 
-                   alt={item.name} 
-                   className="max-w-full max-h-full object-contain group-hover:scale-110 transition-transform duration-500" 
-                />
+              <div className="flex-1 flex items-center justify-center p-2">
+                <img src={item.image.startsWith('./') ? item.image : `./${item.image}`} alt={item.name} className="max-w-[80%] max-h-[80%] object-contain group-hover:scale-110 transition-transform duration-500"/>
               </div>
               <div className="w-full text-center mt-2">
-                <p className="text-[9px] md:text-[10px] font-bold text-gray-400 group-hover:text-[#c3a05b] truncate uppercase">{item.name}</p>
-                <p className="text-[7px] md:text-[8px] font-mono text-gray-700 mt-0.5">{item.category}</p>
+                <p className="text-[10px] font-bold text-gray-400 group-hover:text-[#c3a05b] truncate uppercase">{item.name}</p>
+                <p className="text-[8px] font-mono text-gray-700 mt-0.5">{item.category}</p>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Loader Infinite Scroll */}
-        <div ref={loaderRef} className="h-24 w-full flex items-center justify-center mt-10">
+        <div ref={loaderRef} className="h-20 w-full flex items-center justify-center mt-10">
           {visibleItems.length < allFilteredItems.length && (
-            <div className="w-8 h-8 border-2 border-[#c3a05b]/10 border-b-[#c3a05b] rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[#c3a05b]/20 border-b-[#c3a05b] rounded-full animate-spin" />
           )}
         </div>
       </main>
