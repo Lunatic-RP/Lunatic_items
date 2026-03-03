@@ -125,9 +125,9 @@ export default function App() {
         <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-12 mt-16 md:mt-0">
           <div>
             <h1 className="text-3xl md:text-4xl font-black tracking-tighter uppercase italic">
-              <span className="text-[#c3a05b]">Lunatic</span> Catalogue
+              <span className="text-[#c3a05b]">Lunatic</span> Catalogue d'items
             </h1>
-            <p className="text-gray-500 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">Items Lunatic RP</p>
+            <p className="text-gray-500 text-[10px] font-mono uppercase tracking-[0.2em] mt-1">Lunatic RP</p>
           </div>
 
           <div className="relative group">
