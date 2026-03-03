@@ -21,15 +21,14 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          # On indique à l'Action où se trouve le fichier package-lock.json
+          cache-dependency-path: './Items/package-lock.json'
 
       - name: Install dependencies
-
-        run: |
-          if [ -d "Items" ]; then cd Items && npm install; else npm install; fi
+        run: cd Items && npm install
 
       - name: Build project
-        run: |
-          if [ -d "Items" ]; then cd Items && npm run build; else npm run build; fi
+        run: cd Items && npm run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -37,13 +36,9 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-
-          path: |
-            ${{ github.workspace }}/Items/dist
-            ${{ github.workspace }}/dist
+          # On pointe sur le dossier dist à l'intérieur de Items
+          path: './Items/dist'
 
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-        
-        # test
