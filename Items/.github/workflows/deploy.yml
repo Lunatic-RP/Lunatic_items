@@ -23,10 +23,13 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm install
+
+        run: |
+          if [ -d "Items" ]; then cd Items && npm install; else npm install; fi
 
       - name: Build project
-        run: npm run build
+        run: |
+          if [ -d "Items" ]; then cd Items && npm run build; else npm run build; fi
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -34,7 +37,10 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist' # C'est le dossier créé par Vite après le build test test
+
+          path: |
+            ${{ github.workspace }}/Items/dist
+            ${{ github.workspace }}/dist
 
       - name: Deploy to GitHub Pages
         id: deployment
