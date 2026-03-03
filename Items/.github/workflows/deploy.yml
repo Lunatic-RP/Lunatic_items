@@ -34,7 +34,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist' # C'est le dossier créé par Vite après le build
+          path: './dist' # C'est le dossier créé par Vite après le build test
 
       - name: Deploy to GitHub Pages
         id: deployment
